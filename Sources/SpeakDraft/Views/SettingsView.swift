@@ -64,6 +64,8 @@ private struct HotkeySettingsTab: View {
         Form {
             Section("全域快捷鍵") {
                 HotkeyCatcher(title: "開始 / 停止錄製", combo: $settings.recordKey)
+                HotkeyCatcher(title: "錄音＋改寫（必定經 LLM 改寫）", combo: $settings.rewriteKey)
+                HotkeyCatcher(title: "切換「語音改寫」開關", combo: $settings.rewriteToggleKey)
                 HotkeyCatcher(title: "取消本次錄製", combo: $settings.cancelKey)
                 Text("點擊按鈕後按下新的組合即可更換；按 Esc 取消捕捉。建議至少含一個修飾鍵（⌘/⌥/⌃/⇧）。")
                     .font(.caption)
