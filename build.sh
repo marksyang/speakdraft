@@ -42,12 +42,13 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </plist>
 PLIST
 
-# 用固定的自簽名身份簽章（TCC 權限可跨 rebuild 保留）；沒裝則 fallback ad-hoc
-SIGN_IDENTITY="SpeakDraft Dev Self-Signed"
-if security find-identity -p codesigning 2>/dev/null | grep -q "$SIGN_IDENTITY"; then
-    codesign --force -s "$SIGN_IDENTITY" "$APP"
+# 簽章：預設 ad-hoc（不需金鑰圈互動，絕不會卡住）。
+# 若想用固定自簽名身份（TCC 權限跨 rebuild 保留），需先解決金鑰 ACL：
+#   security set-key-partition-list -S apple-tool:,apple: -s -k <你的登入密碼>
+# 然後執行 SPEAKDRAFT_SIGN=1 ./build.sh
+if [ "${SPEAKDRAFT_SIGN:-0}" = "1" ] && security find-identity -p codesigning 2>/dev/null | grep -q "SpeakDraft Dev Self-Signed"; then
+    codesign --force -s "SpeakDraft Dev Self-Signed" "$APP"
 else
-    echo "⚠️  未找到簽章身份 $SIGN_IDENTITY，改用 ad-hoc（每次 rebuild 需重開權限）"
     codesign --force -s - "$APP"
 fi
 

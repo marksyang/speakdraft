@@ -30,9 +30,12 @@ open build/SpeakDraft.app
 
 ### 簽章說明（TCC 權限穩定性）
 
-`build.sh` 優先用**固定自簽名身份**簽章（CN=`SpeakDraft Dev Self-Signed`），讓麥克風/輔助功能權限跨 rebuild 保留；找不到該身份則 fallback ad-hoc（每次 rebuild 後需重開權限）。
+`build.sh` 預設 **ad-hoc 簽章**（不需金鑰圈互動）。ad-hoc 簽名每次 rebuild 都會變，
+輔助功能/麥克風權限可能需要重開。
 
-首次使用請先建立簽章身份：
+若想固定身份讓權限跨 rebuild 保留（可選）：
+
+1. 建立自簽名身份（CN=`SpeakDraft Dev Self-Signed`，存於 `~/.local/speakdraft-signing/`）：
 
 ```bash
 mkdir -p ~/.local/speakdraft-signing && cd ~/.local/speakdraft-signing
@@ -45,6 +48,14 @@ openssl pkcs12 -export -in speakdraft-cert.pem -inkey speakdraft-key.pem \
 security import speakdraft-identity.p12 -k ~/Library/Keychains/login.keychain-db \
   -P "speakdraft" -T /usr/bin/codesign
 ```
+
+2. 允許 codesign 免彈窗使用該金鑰（在 Terminal 執行，需輸入登入密碼）：
+
+```bash
+security set-key-partition-list -S apple-tool:,apple: -s -k <你的登入密碼>
+```
+
+3. 以後用 `SPEAKDRAFT_SIGN=1 ./build.sh` 建置；權限重勾一次後即永久保留。
 
 ## 權限
 
@@ -89,7 +100,7 @@ SpeakDraft/
 
 - 剪貼簿還原目前只還原文字類型
 - Secure Input（密碼欄等）開啟時無法模擬貼上，走剪貼簿 fallback
-- 本地 ad-hoc/自簽名分發，無 Developer ID / Apple 公证
+- 本地 ad-hoc 簽章分發，無 Developer ID / Apple 公证（自簽名固定身份為可選，見「簽章說明」）
 - 快捷鍵為固定預設 + 手動捕捉，未偵測與其它 app 的衝突
 
 ## 設計記錄
