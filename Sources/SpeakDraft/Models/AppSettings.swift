@@ -54,6 +54,10 @@ final class AppSettings: ObservableObject {
         static let systemPrompt = "rewrite.systemPrompt"
         static let recordKeyCode = "hotkey.record.keyCode"
         static let recordMods = "hotkey.record.mods"
+        static let rewriteKeyCode = "hotkey.rewrite.keyCode"
+        static let rewriteMods = "hotkey.rewrite.mods"
+        static let rewriteToggleKeyCode = "hotkey.rewriteToggle.keyCode"
+        static let rewriteToggleMods = "hotkey.rewriteToggle.mods"
         static let cancelKeyCode = "hotkey.cancel.keyCode"
         static let cancelMods = "hotkey.cancel.mods"
     }
@@ -83,6 +87,20 @@ final class AppSettings: ObservableObject {
             onHotkeysChanged?()
         }
     }
+    @Published var rewriteKey: KeyCombo {
+        didSet {
+            defaults.set(Int(rewriteKey.keyCode), forKey: Keys.rewriteKeyCode)
+            defaults.set(Int(rewriteKey.modifiers), forKey: Keys.rewriteMods)
+            onHotkeysChanged?()
+        }
+    }
+    @Published var rewriteToggleKey: KeyCombo {
+        didSet {
+            defaults.set(Int(rewriteToggleKey.keyCode), forKey: Keys.rewriteToggleKeyCode)
+            defaults.set(Int(rewriteToggleKey.modifiers), forKey: Keys.rewriteToggleMods)
+            onHotkeysChanged?()
+        }
+    }
     @Published var cancelKey: KeyCombo {
         didSet {
             defaults.set(Int(cancelKey.keyCode), forKey: Keys.cancelKeyCode)
@@ -104,6 +122,14 @@ final class AppSettings: ObservableObject {
             keyCode: UInt32(defaults.integer(forKey: Keys.recordKeyCode)),
             modifiers: UInt32(defaults.integer(forKey: Keys.recordMods))
         )
+        rewriteKey = KeyCombo(
+            keyCode: UInt32(defaults.integer(forKey: Keys.rewriteKeyCode)),
+            modifiers: UInt32(defaults.integer(forKey: Keys.rewriteMods))
+        )
+        rewriteToggleKey = KeyCombo(
+            keyCode: UInt32(defaults.integer(forKey: Keys.rewriteToggleKeyCode)),
+            modifiers: UInt32(defaults.integer(forKey: Keys.rewriteToggleMods))
+        )
         cancelKey = KeyCombo(
             keyCode: UInt32(defaults.integer(forKey: Keys.cancelKeyCode)),
             modifiers: UInt32(defaults.integer(forKey: Keys.cancelMods))
@@ -111,9 +137,15 @@ final class AppSettings: ObservableObject {
     }
 
     func setDefaultsForHotkeys() {
-        // 預設：⌥Space 開始/停止，⌥⇧Space 取消
+        // 預設：⌥Space 開始/停止，⌥⌘Space 錄音+改寫，⌥⇧Space 取消
         if !recordKey.isSet {
             recordKey = KeyCombo(keyCode: 49, modifiers: UInt32(optionKey)) // Space + Option
+        }
+        if !rewriteKey.isSet {
+            rewriteKey = KeyCombo(keyCode: 49, modifiers: UInt32(optionKey) | UInt32(cmdKey))
+        }
+        if !rewriteToggleKey.isSet {
+            rewriteToggleKey = KeyCombo(keyCode: 15, modifiers: UInt32(optionKey) | UInt32(cmdKey)) // R + Option+Command
         }
         if !cancelKey.isSet {
             cancelKey = KeyCombo(keyCode: 49, modifiers: UInt32(optionKey) | UInt32(shiftKey))

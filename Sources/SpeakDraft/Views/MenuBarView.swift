@@ -58,13 +58,26 @@ struct MenuBarView: View {
             Divider()
 
             // 主動作
-            Button {
-                state.toggleRecording()
-            } label: {
-                Label(
-                    state.phase == .recording ? "停止並貼上" : "開始錄製語音",
-                    systemImage: state.phase == .recording ? "stop.fill" : "mic.fill"
-                )
+            if state.phase == .recording {
+                Button {
+                    state.toggleRecording()
+                } label: {
+                    Label(state.rewriteMode ? "停止 → 改寫 → 貼上" : "停止並貼上",
+                          systemImage: "stop.fill")
+                }
+            } else {
+                Button {
+                    state.toggleRecording()
+                } label: {
+                    Label("開始錄製語音", systemImage: "mic.fill")
+                }
+                if settings.rewriteKey.isSet {
+                    Button {
+                        state.toggleRewriteRecording()
+                    } label: {
+                        Label("錄音＋改寫（專業用語）", systemImage: "wand.and.stars")
+                    }
+                }
             }
 
             if state.phase == .recording || state.isProcessing {
@@ -76,7 +89,8 @@ struct MenuBarView: View {
 
             Divider()
 
-            Toggle("語音改寫（專業用語）", isOn: $settings.rewriteEnabled)
+            Toggle("語音改寫（專業用語）  \(settings.rewriteToggleKey.isSet ? settings.rewriteToggleKey.description : "")",
+                   isOn: $settings.rewriteEnabled)
                 .font(.callout)
 
             Divider()
@@ -98,7 +112,11 @@ struct MenuBarView: View {
     private var statusHint: some View {
         switch state.phase {
         case .recording:
-            Text("🎙 錄製中…再按 \(settings.recordKey.description) 停止並貼上")
+            if state.rewriteMode {
+                Text("🎙 錄製中（改寫模式）…再按停止 → 改寫 → 貼上")
+            } else {
+                Text("🎙 錄製中…再按 \(settings.recordKey.description) 停止並貼上")
+            }
         case .transcribing:
             Text("⏳ 語音轉錄中…")
         case .rewriting:
@@ -106,7 +124,7 @@ struct MenuBarView: View {
         case .pasting:
             Text("📋 貼回輸入點…")
         case .idle:
-            Text("按 \(settings.recordKey.description) 開始說；\(settings.cancelKey.description) 取消")
+            Text("\(settings.recordKey.description) 語音錄製；\(settings.rewriteKey.description) 錄音+改寫；\(settings.cancelKey.description) 取消")
         }
     }
 }

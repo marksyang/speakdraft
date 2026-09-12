@@ -6,7 +6,7 @@ SpeakDraft 是一個 menu bar 常駐的 macOS 語音速記工具：在任何視�
 
 ## 功能
 
-- **全域快捷鍵**：預設 `⌥Space` 開始/停止錄製、`⌥⇧Space` 取消；設定頁可捕捉任意組合
+- **全域快捷鍵**：預設 `⌥Space` 語音錄製、`⌥⌘Space` 錄音＋改寫（必定經 LLM 專業化）、`⌥⌘R` 切換「語音改寫」開關、`⌥⇧Space` 取消；設定頁可捕捉任意組合
 - **語音轉錄**：內建錄音（AVAudioEngine → 16 kHz mono WAV），送 OpenAI-compatible `/audio/transcriptions`，支援本地 Whisper 服務（whisper-standalone-server、faster-whisper-server…）或雲端，中/英文自動偵測
 - **LLM 專業化改寫**：OpenAI-compatible `/chat/completions`，可開關、自訂 system prompt；改寫失敗自動 fallback 貼上原始轉錄文字
 - **貼回原輸入點**：模擬 ⌘V；貼前保存舊剪貼簿、3 秒後還原；若無權限被擋，文字保留在剪貼簿並提示手動 ⌘V

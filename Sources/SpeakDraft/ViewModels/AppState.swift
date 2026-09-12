@@ -12,6 +12,8 @@ final class AppState: ObservableObject {
     }
 
     @Published var phase: Phase = .idle
+    /// 目前錄製是否為「改寫模式」（由 ⌥⌘Space 觸發，停止時必定經過 LLM 改寫）
+    @Published var rewriteMode = false
     @Published var errorMessage: String?
     /// 最近一次結果的提示（例如「已貼上」、「改寫失敗，已貼上原文」）
     @Published var lastNotice: String?
@@ -60,11 +62,44 @@ final class AppState: ObservableObject {
         } else {
             hotkeys.unregister(id: 2)
         }
+        if s.rewriteKey.isSet {
+            hotkeys.register(id: 3, combo: s.rewriteKey) { [weak self] in
+                Task { @MainActor in self?.toggleRewriteRecording() }
+            }
+        } else {
+            hotkeys.unregister(id: 3)
+        }
+        if s.rewriteToggleKey.isSet {
+            hotkeys.register(id: 4, combo: s.rewriteToggleKey) { [weak self] in
+                Task { @MainActor in self?.toggleRewriteEnabled() }
+            }
+        } else {
+            hotkeys.unregister(id: 4)
+        }
+    }
+
+    /// 切換「語音改寫（專業用語）」開關
+    func toggleRewriteEnabled() {
+        let s = AppSettings.shared
+        s.rewriteEnabled.toggle()
+        errorMessage = nil
+        lastNotice = s.rewriteEnabled
+            ? "語音改寫（專業用語）：已開啟"
+            : "語音改寫（專業用語）：已關閉"
     }
 
     // MARK: - Actions
 
     func toggleRecording() {
+        startOrStop(rewrite: false)
+    }
+
+    /// 「語音＋改寫」專屬鍵：停止時無論開關設定都必定經過 LLM 改寫
+    func toggleRewriteRecording() {
+        startOrStop(rewrite: true)
+    }
+
+    private func startOrStop(rewrite: Bool) {
         guard !busy else { return }
         switch phase {
         case .recording:
@@ -75,7 +110,7 @@ final class AppState: ObservableObject {
             }
             debugSaveWAV(wav)
             lastWav = wav
-            Task { await process(wav) }
+            Task { await process(wav, forceRewrite: rewriteMode) }
         default:
             guard PermissionManager.microphoneGranted() else {
                 Task {
@@ -89,6 +124,7 @@ final class AppState: ObservableObject {
             do {
                 try recorder.start()
                 phase = .recording
+                rewriteMode = rewrite
                 errorMessage = nil
                 lastNotice = nil
             } catch {
@@ -101,19 +137,20 @@ final class AppState: ObservableObject {
         guard !busy || phase == .recording else { return }
         recorder.stopAndDiscard()
         phase = .idle
+        rewriteMode = false
         lastNotice = "已取消"
     }
 
     func retry() {
         guard !busy, let wav = lastWav else { return }
-        Task { await process(wav) }
+        Task { await process(wav, forceRewrite: rewriteMode) }
     }
 
     var canRetry: Bool { !busy && lastWav != nil }
 
     // MARK: - Pipeline
 
-    private func process(_ wav: Data) async {
+    private func process(_ wav: Data, forceRewrite: Bool = false) async {
         busy = true
         defer { busy = false }
 
@@ -136,7 +173,8 @@ final class AppState: ObservableObject {
             }
             lastTranscription = text
 
-            if s.rewriteEnabled {
+            let shouldRewrite = forceRewrite || s.rewriteEnabled
+            if shouldRewrite {
                 phase = .rewriting
                 do {
                     let rewritten = try await LLMClient.rewrite(
